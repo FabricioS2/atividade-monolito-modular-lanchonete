@@ -276,3 +276,4 @@ class NotificacaoCozinha(models.Model):
     class Meta:
         db_table = 'notificacao_notificacao_cozinha'
 
+
