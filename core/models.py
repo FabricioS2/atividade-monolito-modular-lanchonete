@@ -106,10 +106,13 @@ class BaseModel(UUIDModel, TimestampedModel):
 
 class Item(models.Model):
     nome = models.CharField(max_length=100)
-    preco = models.DecimalField(max_digits=10, decimal_places=2) # Mudei para 2 casas decimais
+    preco = models.DecimalField(max_digits=10, decimal_places=2)
     descricao = models.TextField()
-    quantidade_estoque = models.PositiveIntegerField(default=0) # Renomeei para ficar mais claro
+    quantidade_estoque = models.PositiveIntegerField(default=0)
     disponivel = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'cardapio"."item'
 
     def __str__(self):
         return self.nome
@@ -123,29 +126,65 @@ class Pedido(models.Model):
         ('CONCLUIDO', 'Concluído'),
     ]
 
-    cliente = models.ForeignKey(User, on_delete=models.CASCADE, related_name="pedidos")
-    status = models.CharField(max_length=30, choices=STATUS_PEDIDO, default='CRIADO')
+    cliente = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="pedidos"
+    )
+
+    status = models.CharField(
+        max_length=30,
+        choices=STATUS_PEDIDO,
+        default='CRIADO'
+    )
+
     data_pedido = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'pedidos"."pedido'
 
     def __str__(self):
         return f"Pedido {self.id} - {self.cliente.get_full_name()}"
-    
+
     def get_total(self):
         return sum(item.subtotal() for item in self.itens.all())
 
 # NOVA CLASSE: Para o pedido ter vários itens e salvar o preço na hora da compra
 class ItemPedido(models.Model):
-    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name="itens")
-    item = models.ForeignKey(Item, on_delete=models.PROTECT)
+    pedido = models.ForeignKey(
+        Pedido,
+        on_delete=models.CASCADE,
+        related_name="itens"
+    )
+
+    item = models.ForeignKey(
+        Item,
+        on_delete=models.PROTECT
+    )
+
     quantidade = models.PositiveIntegerField()
-    preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+
+    preco_unitario = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    class Meta:
+        db_table = 'pedidos"."item_pedido'
 
     def subtotal(self):
         return self.quantidade * self.preco_unitario
 
     def save(self, *args, **kwargs):
-        if not self.pk: # Só deduz o estoque na criação, não em atualizações
-            Item.objects.filter(id=self.item.id).update(quantidade_estoque=models.F('quantidade_estoque') - self.quantidade)
+        if not self.pk:
+            Item.objects.filter(
+                id=self.item.id
+            ).update(
+                quantidade_estoque=models.F(
+                    'quantidade_estoque'
+                ) - self.quantidade
+            )
+
         super().save(*args, **kwargs)
 
 class FormaPagamento(models.Model):
@@ -154,8 +193,17 @@ class FormaPagamento(models.Model):
         ('PIX', 'Pix'),
         ('BOLETO', 'Boleto'),
     ]
-    nome = models.CharField(max_length=50, choices=METODO_CHOICES, unique=True)
+
+    nome = models.CharField(
+        max_length=50,
+        choices=METODO_CHOICES,
+        unique=True
+    )
+
     ativo = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'pagamento"."forma_pagamento'
 
     def __str__(self):
         return self.get_nome_display()
@@ -168,38 +216,63 @@ class TransacaoMock(models.Model):
         ('FAILED', 'Falhou'),
     ]
 
-    id_transacao = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-    # MUDANÇA CRÍTICA: Faltava ligar o pagamento ao pedido
-    pedido = models.ForeignKey(Pedido, on_delete=models.PROTECT, related_name="pagamentos")
-    
-    valor = models.DecimalField(max_digits=10, decimal_places=2)
-    moeda = models.CharField(max_length=3, default='BRL')
-    forma_pagamento = models.ForeignKey(FormaPagamento, on_delete=models.PROTECT)
-    
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
-    mensagem_retorno = models.CharField(max_length=255, blank=True, null=True)
-    
+    id_transacao = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+
+    pedido = models.ForeignKey(
+        Pedido,
+        on_delete=models.PROTECT,
+        related_name="pagamentos"
+    )
+
+    valor = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    moeda = models.CharField(
+        max_length=3,
+        default='BRL'
+    )
+
+    forma_pagamento = models.ForeignKey(
+        FormaPagamento,
+        on_delete=models.PROTECT
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING'
+    )
+
+    mensagem_retorno = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'pagamento"."transacao_mock'
+
 # NOVA CLASSE: Para registrar que a cozinha foi notificada
 class NotificacaoCozinha(models.Model):
-    pedido = models.OneToOneField(Pedido, on_delete=models.CASCADE, related_name="notificacao_cozinha")
+    pedido = models.OneToOneField(
+        Pedido,
+        on_delete=models.CASCADE,
+        related_name="notificacao_cozinha"
+    )
+
     lida = models.BooleanField(default=False)
+
     criado_em = models.DateTimeField(auto_now_add=True)
 
-class Meta:
-    db_table = 'cardapio.item'
+    class Meta:
+        db_table = 'notificacao"."notificacao_cozinha'
 
-class Meta:
-    db_table = 'pedidos.pedido'
-
-class Meta:
-    db_table = 'pedidos.item_pedido'
-
-class Meta:
-    db_table = 'pagamento.forma_pagamento'
-
-class Meta:
-    db_table = 'notificacao.notificacao_cozinha'
