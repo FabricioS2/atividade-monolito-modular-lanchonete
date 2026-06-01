@@ -112,7 +112,7 @@ class Item(models.Model):
     disponivel = models.BooleanField(default=True)
 
     class Meta:
-        db_table = 'cardapio"."item'
+        db_table = 'cardapio_item'
 
     def __str__(self):
         return self.nome
@@ -141,7 +141,7 @@ class Pedido(models.Model):
     data_pedido = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'pedidos"."pedido'
+        db_table = 'pedidos_pedido'
 
     def __str__(self):
         return f"Pedido {self.id} - {self.cliente.get_full_name()}"
@@ -170,7 +170,7 @@ class ItemPedido(models.Model):
     )
 
     class Meta:
-        db_table = 'pedidos"."item_pedido'
+        db_table = 'pedidos_item_pedido'
 
     def subtotal(self):
         return self.quantidade * self.preco_unitario
@@ -203,7 +203,7 @@ class FormaPagamento(models.Model):
     ativo = models.BooleanField(default=True)
 
     class Meta:
-        db_table = 'pagamento"."forma_pagamento'
+        db_table = 'pagamento_forma_pagamento'
 
     def __str__(self):
         return self.get_nome_display()
@@ -259,7 +259,7 @@ class TransacaoMock(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'pagamento"."transacao_mock'
+        db_table = 'pagamento_transacao_mock'
 
 # NOVA CLASSE: Para registrar que a cozinha foi notificada
 class NotificacaoCozinha(models.Model):
@@ -274,5 +274,5 @@ class NotificacaoCozinha(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'notificacao"."notificacao_cozinha'
+        db_table = 'notificacao_notificacao_cozinha'
 
